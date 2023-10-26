@@ -1,0 +1,8 @@
+.word-list {
+  overflow: auto;
+  padding: 10px;
+}
+
+.word-list > * {
+  margin-top: 10px;
+}
