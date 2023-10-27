@@ -1,15 +1,15 @@
 import papi from 'papi-frontend';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrVers, VerseRef } from '@sillsdev/scripture';
-import type { UsfmProviderDataTypes } from 'usfm-data-provider';
-import { RefSelector, ScriptureReference } from 'papi-components';
+import { Button, RefSelector, ScriptureReference } from 'papi-components';
+import { ProjectDataTypes } from 'papi-shared-types';
 import { WordListEntry } from './word-list-types';
 import WordContentViewer from './word-content-viewer';
 import WordTable from './word-table';
 
 const {
   react: {
-    hooks: { useData, useSetting },
+    hooks: { useSetting, useDialogCallback, useProjectData },
   },
 } = papi;
 
@@ -113,13 +113,24 @@ function processChapter(chapterText: string, bookNum: number, chapterNum: number
 
 globalThis.webViewComponent = function WordList() {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
-  const [chapterText, , isChapterTextLoading] = useData.Chapter<UsfmProviderDataTypes, 'Chapter'>(
-    'usfm',
+  const [project, selectProject] = useDialogCallback(
+    'platform.selectProject',
+    useRef({
+      prompt: 'Please select a project for Hello World WebView:',
+      iconUrl: 'papi-extension://hello-world/assets/offline.svg',
+      title: 'Select Hello World Project',
+    }).current,
+  );
+  const [chapterText, , isChapterTextLoading] = useProjectData.ChapterUSFM<
+    ProjectDataTypes['ParatextStandard'],
+    'ChapterUSFM'
+  >(
+    project ?? undefined,
     useMemo(
       () => new VerseRef(scrRef.bookNum, scrRef.chapterNum, 1, ScrVers.English),
       [scrRef.bookNum, scrRef.chapterNum],
     ),
-    'Loading verse',
+    'Loading chapter',
   );
   const [wordList, setWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
@@ -147,6 +158,8 @@ globalThis.webViewComponent = function WordList() {
           setScrRef(newScrRef);
         }}
       />
+      <Button onClick={selectProject}>Select Project</Button>
+      {project && <p>Selected Project: {project}</p>}
       <WordTable wordList={wordList} onWordClick={(word: string) => findSelectedWordEntry(word)} />
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
     </div>
