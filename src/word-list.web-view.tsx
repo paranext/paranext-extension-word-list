@@ -72,41 +72,46 @@ function getScriptureSnippet(verseText: string, word: string, occurrence: number
   return snippet;
 }
 
-function processChapter(chapterText: string, bookNum: number, chapterNum: number) {
-  const verseTexts: string[] = chapterText.split(/\\v\s\d+\s/);
-  // Delete the first array element, which contains non-verse-related content
-  verseTexts.shift();
+function processBook(bookText: string, bookNum: number) {
+  console.log(bookText);
+  const chapterTexts: string[] = bookText.split(/\\c\s\d+\s/);
+  // Delete the first array element, which contains non-scripture-related content
+  chapterTexts.shift();
 
   const wordList: WordListEntry[] = [];
-  verseTexts.forEach((verseText, verseId) => {
-    const wordMatches: RegExpMatchArray | null | undefined =
-      verseText?.match(/(?<!\\)\b[a-zA-Z’]+\b/g);
+  chapterTexts.forEach((chapterText, chapterId) => {
+    const verseTexts: string[] = chapterText.split(/\\v\s\d+\s/);
 
-    if (wordMatches) {
-      wordMatches.forEach((word) => {
-        const newRef: ScriptureReference = {
-          bookNum,
-          chapterNum,
-          verseNum: verseId + 1,
-        };
-        const existingEntry = wordList.find((entry) => entry.word === word.toLocaleLowerCase());
-        if (existingEntry) {
-          existingEntry.scrRefs.push(newRef);
-          const occurrence = existingEntry.scrRefs.reduce(
-            (matches, ref) => (compareRefs(ref, newRef) ? matches + 1 : matches),
-            0,
-          );
-          existingEntry.scriptureSnippets.push(getScriptureSnippet(verseText, word, occurrence));
-        } else {
-          const newEntry: WordListEntry = {
-            word: word.toLocaleLowerCase(),
-            scrRefs: [newRef],
-            scriptureSnippets: [getScriptureSnippet(verseText, word)],
+    verseTexts.forEach((verseText, verseId) => {
+      const wordMatches: RegExpMatchArray | null | undefined =
+        verseText?.match(/(?<!\\)\b[a-zA-Z’]+\b/g);
+
+      if (wordMatches) {
+        wordMatches.forEach((word) => {
+          const newRef: ScriptureReference = {
+            bookNum,
+            chapterNum: chapterId + 1,
+            verseNum: verseId + 1,
           };
-          wordList.push(newEntry);
-        }
-      });
-    }
+          const existingEntry = wordList.find((entry) => entry.word === word.toLocaleLowerCase());
+          if (existingEntry) {
+            existingEntry.scrRefs.push(newRef);
+            const occurrence = existingEntry.scrRefs.reduce(
+              (matches, ref) => (compareRefs(ref, newRef) ? matches + 1 : matches),
+              0,
+            );
+            existingEntry.scriptureSnippets.push(getScriptureSnippet(verseText, word, occurrence));
+          } else {
+            const newEntry: WordListEntry = {
+              word: word.toLocaleLowerCase(),
+              scrRefs: [newRef],
+              scriptureSnippets: [getScriptureSnippet(verseText, word)],
+            };
+            wordList.push(newEntry);
+          }
+        });
+      }
+    });
   });
   return wordList;
 }
@@ -121,29 +126,22 @@ globalThis.webViewComponent = function WordList() {
       title: 'Select Hello World Project',
     }).current,
   );
-  const [chapterText, , isChapterTextLoading] = useProjectData.ChapterUSFM<
+  const [bookText, , isBookTextLoading] = useProjectData.BookUSFM<
     ProjectDataTypes['ParatextStandard'],
-    'ChapterUSFM'
+    'BookUSFM'
   >(
     project ?? undefined,
-    useMemo(
-      () => new VerseRef(scrRef.bookNum, scrRef.chapterNum, 1, ScrVers.English),
-      [scrRef.bookNum, scrRef.chapterNum],
-    ),
+    useMemo(() => new VerseRef(scrRef.bookNum, 1, 1, ScrVers.English), [scrRef.bookNum]),
     'Loading chapter',
   );
   const [wordList, setWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
 
   useEffect(() => {
-    setWordList([]);
+    if (isBookTextLoading || !bookText) return;
     setSelectedWord(undefined);
-  }, [scrRef.bookNum, scrRef.chapterNum]);
-
-  useEffect(() => {
-    if (isChapterTextLoading || !chapterText) return;
-    setWordList(processChapter(chapterText, scrRef.bookNum, scrRef.chapterNum));
-  }, [isChapterTextLoading, chapterText, scrRef.bookNum, scrRef.chapterNum]);
+    setWordList(processBook(bookText, scrRef.bookNum));
+  }, [isBookTextLoading, bookText, project, scrRef.bookNum]);
 
   function findSelectedWordEntry(word: string) {
     const clickedEntry = wordList.find((entry) => entry.word === word);
@@ -160,7 +158,12 @@ globalThis.webViewComponent = function WordList() {
       />
       <Button onClick={selectProject}>Select Project</Button>
       {project && <p>Selected Project: {project}</p>}
-      <WordTable wordList={wordList} onWordClick={(word: string) => findSelectedWordEntry(word)} />
+      {wordList.length > 0 && (
+        <WordTable
+          wordList={wordList}
+          onWordClick={(word: string) => findSelectedWordEntry(word)}
+        />
+      )}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
     </div>
   );
