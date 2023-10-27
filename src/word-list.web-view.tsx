@@ -155,12 +155,12 @@ globalThis.webViewComponent = function WordList() {
 
   useEffect(() => {
     if (isBookTextLoading || !bookText) return;
-
     setSelectedWord(undefined);
     setWordList(processBook(bookText, scrRef, scope));
   }, [isBookTextLoading, bookText, project, scope, scrRef]);
 
   useEffect(() => {
+    setSelectedWord(undefined);
     if (wordFilter === '') {
       setShownWordList(wordList);
       return;
