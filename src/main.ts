@@ -32,7 +32,11 @@ export async function activate(context: ExecutionActivationContext) {
     wordListWebViewProvider,
   );
 
-  papi.webViews.getWebView(wordListWebViewType, undefined, { existingId: '?' });
+  papi.webViews.getWebView(
+    wordListWebViewType,
+    { type: 'float', floatSize: { width: 770, height: 815 } },
+    { existingId: '?' },
+  );
 
   context.registrations.add(await reactWebViewProviderPromise);
 
