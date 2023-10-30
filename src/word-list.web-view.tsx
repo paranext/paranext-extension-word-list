@@ -3,6 +3,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrVers, VerseRef } from '@sillsdev/scripture';
 import { Button, ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
 import { ProjectDataTypes } from 'papi-shared-types';
+import type { WebViewProps } from 'shared/data/web-view.model';
 import { WordListEntry } from './word-list-types';
 import WordContentViewer from './word-content-viewer';
 import WordTable from './word-table';
@@ -18,6 +19,12 @@ const defaultScrRef: ScriptureReference = {
   chapterNum: 1,
   verseNum: 1,
 };
+
+enum Scope {
+  Book = 'Book',
+  Chapter = 'Chapter',
+  Verse = 'Verse',
+}
 
 function compareRefs(a: ScriptureReference, b: ScriptureReference): boolean {
   return a.bookNum === b.bookNum && a.chapterNum === b.chapterNum && a.verseNum === b.verseNum;
@@ -82,7 +89,7 @@ function processBook(bookText: string, scrRef: ScriptureReference, scope: string
   const wordList: WordListEntry[] = [];
   chapterTexts.forEach((chapterText, chapterId) => {
     const chapterNum = chapterId + 1;
-    if (scope !== 'Book' && scrRef.chapterNum !== chapterNum) {
+    if (scope !== Scope.Book && scrRef.chapterNum !== chapterNum) {
       return;
     }
 
@@ -92,7 +99,7 @@ function processBook(bookText: string, scrRef: ScriptureReference, scope: string
 
     verseTexts.forEach((verseText, verseId) => {
       const verseNum = verseId + 1;
-      if (scope === 'Verse' && scrRef.verseNum !== verseNum) {
+      if (scope === Scope.Verse && scrRef.verseNum !== verseNum) {
         return;
       }
 
@@ -129,9 +136,9 @@ function processBook(bookText: string, scrRef: ScriptureReference, scope: string
   return wordList;
 }
 
-globalThis.webViewComponent = function WordList() {
+globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebViewProps) {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
-  const [scope, setScope] = useState<string>('Book');
+  const [scope, setScope] = useWebViewState<string>('scope', 'Book');
   const [wordFilter, setWordFilter] = useState<string>('');
   const [project, selectProject] = useDialogCallback(
     'platform.selectProject',
@@ -191,8 +198,8 @@ globalThis.webViewComponent = function WordList() {
         <ComboBox
           title="Scope"
           value={scope}
-          onChange={(_event, value) => setScope(value as string)}
-          options={['Book', 'Chapter', 'Verse']}
+          onChange={(_event, value) => setScope(value as Scope)}
+          options={Object.values(Scope)}
           isClearable={false}
           width={150}
         />
