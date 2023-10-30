@@ -36,7 +36,7 @@ const wordListWebViewProvider: IWebViewProvider = {
         );
       }
     } catch (e) {
-      logger.error(`Text collection web view provider error: Could not get project metadata: ${e}`);
+      logger.error(`Word list web view provider error: Could not get project metadata: ${e}`);
     }
 
     return {
