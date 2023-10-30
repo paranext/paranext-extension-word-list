@@ -1,8 +1,9 @@
 import papi from 'papi-frontend';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrVers, VerseRef } from '@sillsdev/scripture';
-import { Button, RefSelector, ScriptureReference } from 'papi-components';
+import { Button, ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
 import { ProjectDataTypes } from 'papi-shared-types';
+import type { WebViewProps } from 'shared/data/web-view.model';
 import { WordListEntry } from './word-list-types';
 import WordContentViewer from './word-content-viewer';
 import WordTable from './word-table';
@@ -18,6 +19,12 @@ const defaultScrRef: ScriptureReference = {
   chapterNum: 1,
   verseNum: 1,
 };
+
+enum Scope {
+  Book = 'Book',
+  Chapter = 'Chapter',
+  Verse = 'Verse',
+}
 
 function compareRefs(a: ScriptureReference, b: ScriptureReference): boolean {
   return a.bookNum === b.bookNum && a.chapterNum === b.chapterNum && a.verseNum === b.verseNum;
@@ -72,17 +79,30 @@ function getScriptureSnippet(verseText: string, word: string, occurrence: number
   return snippet;
 }
 
-function processBook(bookText: string, bookNum: number) {
-  console.log(bookText);
+function processBook(bookText: string, scrRef: ScriptureReference, scope: string) {
+  const { bookNum } = scrRef;
+
   const chapterTexts: string[] = bookText.split(/\\c\s\d+\s/);
   // Delete the first array element, which contains non-scripture-related content
   chapterTexts.shift();
 
   const wordList: WordListEntry[] = [];
   chapterTexts.forEach((chapterText, chapterId) => {
+    const chapterNum = chapterId + 1;
+    if (scope !== Scope.Book && scrRef.chapterNum !== chapterNum) {
+      return;
+    }
+
     const verseTexts: string[] = chapterText.split(/\\v\s\d+\s/);
+    // Delete the first array element, which contains non-scripture-related content
+    verseTexts.shift();
 
     verseTexts.forEach((verseText, verseId) => {
+      const verseNum = verseId + 1;
+      if (scope === Scope.Verse && scrRef.verseNum !== verseNum) {
+        return;
+      }
+
       const wordMatches: RegExpMatchArray | null | undefined =
         verseText?.match(/(?<!\\)\b[a-zA-Z’]+\b/g);
 
@@ -90,8 +110,8 @@ function processBook(bookText: string, bookNum: number) {
         wordMatches.forEach((word) => {
           const newRef: ScriptureReference = {
             bookNum,
-            chapterNum: chapterId + 1,
-            verseNum: verseId + 1,
+            chapterNum,
+            verseNum,
           };
           const existingEntry = wordList.find((entry) => entry.word === word.toLocaleLowerCase());
           if (existingEntry) {
@@ -116,8 +136,10 @@ function processBook(bookText: string, bookNum: number) {
   return wordList;
 }
 
-globalThis.webViewComponent = function WordList() {
+globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebViewProps) {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
+  const [scope, setScope] = useWebViewState<string>('scope', 'Book');
+  const [wordFilter, setWordFilter] = useState<string>('');
   const [project, selectProject] = useDialogCallback(
     'platform.selectProject',
     useRef({
@@ -135,17 +157,33 @@ globalThis.webViewComponent = function WordList() {
     'Loading chapter',
   );
   const [wordList, setWordList] = useState<WordListEntry[]>([]);
+  const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
 
   useEffect(() => {
     if (isBookTextLoading || !bookText) return;
     setSelectedWord(undefined);
-    setWordList(processBook(bookText, scrRef.bookNum));
-  }, [isBookTextLoading, bookText, project, scrRef.bookNum]);
+    setWordList(processBook(bookText, scrRef, scope));
+  }, [isBookTextLoading, bookText, project, scope, scrRef]);
+
+  useEffect(() => {
+    setSelectedWord(undefined);
+    if (wordFilter === '') {
+      setShownWordList(wordList);
+      return;
+    }
+    setShownWordList(
+      wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase())),
+    );
+  }, [wordList, wordFilter]);
 
   function findSelectedWordEntry(word: string) {
-    const clickedEntry = wordList.find((entry) => entry.word === word);
+    const clickedEntry = shownWordList.find((entry) => entry.word === word);
     if (clickedEntry) setSelectedWord(clickedEntry);
+  }
+
+  function onChangeWordFilter(event: ChangeEvent<HTMLInputElement>) {
+    setWordFilter(event.target.value);
   }
 
   return (
@@ -156,15 +194,36 @@ globalThis.webViewComponent = function WordList() {
           setScrRef(newScrRef);
         }}
       />
+      <div className="filters">
+        <ComboBox
+          title="Scope"
+          value={scope}
+          onChange={(_event, value) => setScope(value as Scope)}
+          options={Object.values(Scope)}
+          isClearable={false}
+          width={150}
+        />
+        <TextField
+          label="Word filter"
+          onChange={(event) => onChangeWordFilter(event)}
+          isFullWidth
+        />
+      </div>
       <Button onClick={selectProject}>Select Project</Button>
       {project && <p>Selected Project: {project}</p>}
-      {wordList.length > 0 && (
+
+      {shownWordList.length > 0 && (
         <WordTable
-          wordList={wordList}
+          wordList={shownWordList}
           onWordClick={(word: string) => findSelectedWordEntry(word)}
         />
       )}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
+      {wordList.length > 0 && (
+        <p>
+          Showing {shownWordList.length} of {wordList.length} words
+        </p>
+      )}
     </div>
   );
 };
