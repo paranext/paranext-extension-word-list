@@ -1,7 +1,7 @@
 import papi from 'papi-frontend';
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { ScrVers, VerseRef } from '@sillsdev/scripture';
-import { Button, ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
+import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
 import { ProjectDataTypes } from 'papi-shared-types';
 import type { WebViewProps } from 'shared/data/web-view.model';
 import { WordListEntry } from './word-list-types';
@@ -10,7 +10,7 @@ import WordTable from './word-table';
 
 const {
   react: {
-    hooks: { useSetting, useDialogCallback, useProjectData },
+    hooks: { useSetting, useProjectData },
   },
 } = papi;
 
@@ -140,19 +140,12 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
   const [scope, setScope] = useWebViewState<string>('scope', 'Book');
   const [wordFilter, setWordFilter] = useState<string>('');
-  const [project, selectProject] = useDialogCallback(
-    'platform.selectProject',
-    useRef({
-      prompt: 'Please select a project for Hello World WebView:',
-      iconUrl: 'papi-extension://hello-world/assets/offline.svg',
-      title: 'Select Hello World Project',
-    }).current,
-  );
+  const [projectId] = useWebViewState<string>('projectId', '');
   const [bookText, , isBookTextLoading] = useProjectData.BookUSFM<
     ProjectDataTypes['ParatextStandard'],
     'BookUSFM'
   >(
-    project ?? undefined,
+    projectId ?? undefined,
     useMemo(() => new VerseRef(scrRef.bookNum, 1, 1, ScrVers.English), [scrRef.bookNum]),
     'Loading chapter',
   );
@@ -162,9 +155,10 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
 
   useEffect(() => {
     if (isBookTextLoading || !bookText) return;
+    setWordFilter('');
     setSelectedWord(undefined);
     setWordList(processBook(bookText, scrRef, scope));
-  }, [isBookTextLoading, bookText, project, scope, scrRef]);
+  }, [isBookTextLoading, bookText, projectId, scope, scrRef]);
 
   useEffect(() => {
     setSelectedWord(undefined);
@@ -205,25 +199,19 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
         />
         <TextField
           label="Word filter"
+          value={wordFilter}
           onChange={(event) => onChangeWordFilter(event)}
           isFullWidth
         />
       </div>
-      <Button onClick={selectProject}>Select Project</Button>
-      {project && <p>Selected Project: {project}</p>}
-
       {shownWordList.length > 0 && (
         <WordTable
           wordList={shownWordList}
+          fullWordCount={wordList.length}
           onWordClick={(word: string) => findSelectedWordEntry(word)}
         />
       )}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
-      {wordList.length > 0 && (
-        <p>
-          Showing {shownWordList.length} of {wordList.length} words
-        </p>
-      )}
     </div>
   );
 };
