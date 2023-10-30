@@ -207,15 +207,11 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
       {shownWordList.length > 0 && (
         <WordTable
           wordList={shownWordList}
+          fullWordCount={wordList.length}
           onWordClick={(word: string) => findSelectedWordEntry(word)}
         />
       )}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
-      {wordList.length > 0 && (
-        <p>
-          Showing {shownWordList.length} of {wordList.length} words
-        </p>
-      )}
     </div>
   );
 };

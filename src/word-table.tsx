@@ -11,10 +11,11 @@ const defaultSortColumns: TableSortColumn[] = [{ columnKey: 'word', direction: '
 
 type WordTableProps = {
   wordList: WordListEntry[];
+  fullWordCount: number;
   onWordClick: (word: string) => void;
 };
 
-export default function WordTable({ wordList, onWordClick }: WordTableProps) {
+export default function WordTable({ wordList, fullWordCount, onWordClick }: WordTableProps) {
   const [rows, setRows] = useState<Row[]>([]);
   const [sortColumns, setSortColumns] = useState<TableSortColumn[]>(defaultSortColumns);
   const onSortColumnsChange = useCallback((changedSortColumns: TableSortColumn[]) => {
@@ -56,12 +57,18 @@ export default function WordTable({ wordList, onWordClick }: WordTableProps) {
   const onCellClick = (args: TableCellClickArgs<Row>) => {
     onWordClick(args.row.word);
   };
+
+  const wordColumnTitle = useMemo(
+    () => `Words (${wordList.length} of ${fullWordCount})`,
+    [fullWordCount, wordList.length],
+  );
+
   return (
     <Table<Row>
       columns={[
         {
           key: 'word',
-          name: 'Word',
+          name: wordColumnTitle,
         },
         {
           key: 'count',
