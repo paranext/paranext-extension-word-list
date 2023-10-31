@@ -4,7 +4,7 @@ import { ScrVers, VerseRef } from '@sillsdev/scripture';
 import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
 import { ProjectDataTypes } from 'papi-shared-types';
 import type { WebViewProps } from 'shared/data/web-view.model';
-import { WordListEntry } from './word-list-types';
+import type { WordListEntry } from 'paranext-extension-word-list';
 import WordContentViewer from './word-content-viewer';
 import WordTable from './word-table';
 

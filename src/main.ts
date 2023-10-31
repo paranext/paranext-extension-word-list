@@ -7,6 +7,9 @@ import type {
 } from 'shared/data/web-view.model';
 import type { IWebViewProvider } from 'shared/models/web-view-provider.model';
 import type { ProjectMetadata } from 'shared/models/project-metadata.model';
+import {
+  WordListEntry,
+} from 'paranext-extension-word-list';
 import wordListReact from './word-list.web-view?inline';
 import wordListReactStyles from './word-list.web-view.scss?inline';
 
@@ -60,11 +63,7 @@ export async function activate(context: ExecutionActivationContext) {
     wordListWebViewProvider,
   );
 
-  papi.webViews.getWebView(
-    WORD_LIST_WEB_VIEW_TYPE,
-    { type: 'float', floatSize: { width: 775, height: 815 } },
-    { existingId: '?' },
-  );
+  papi.webViews.getWebView(WORD_LIST_WEB_VIEW_TYPE, undefined, { existingId: '?' });
 
   context.registrations.add(
     await papi.commands.registerCommand('paratextWordList.open', async (projectId) => {

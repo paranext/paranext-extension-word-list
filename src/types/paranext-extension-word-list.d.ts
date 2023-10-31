@@ -1,6 +1,12 @@
+import { ScriptureReference } from 'papi-components';
 declare module 'paranext-extension-word-list' {
   // Add extension types exposed on the papi for other extensions to use here
   // More instructions can be found in the README
+  export type WordListEntry = {
+    word: string;
+    scrRefs: ScriptureReference[];
+    scriptureSnippets: string[];
+  };
 }
 
 declare module 'papi-shared-types' {
