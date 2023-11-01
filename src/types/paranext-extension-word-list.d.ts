@@ -1,12 +1,33 @@
 import { ScriptureReference } from 'papi-components';
+import type IDataProvider from 'shared/models/data-provider.interface';
+import type { DataProviderDataType } from 'shared/models/data-provider.model';
+
 declare module 'paranext-extension-word-list' {
-  // Add extension types exposed on the papi for other extensions to use here
-  // More instructions can be found in the README
   export type WordListEntry = {
     word: string;
     scrRefs: ScriptureReference[];
     scriptureSnippets: string[];
   };
+
+  export enum Scope {
+    Book = 'Book',
+    Chapter = 'Chapter',
+    Verse = 'Verse',
+  }
+
+  export type WordListDataTypes = {
+    WordList: DataProviderDataType<
+      undefined,
+      WordListEntry[] | undefined,
+      WordListEntry[] | undefined
+    >;
+  };
+
+  export type WordListDataMethods = {
+    generateWordList(bookText: string, scrRef: ScriptureReference, scope: string): Promise<boolean>;
+  };
+
+  export type WordListDataProvider = IDataProvider<WordListDataTypes> & WordListDataMethods;
 }
 
 declare module 'papi-shared-types' {

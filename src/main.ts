@@ -7,13 +7,50 @@ import type {
 } from 'shared/data/web-view.model';
 import type { IWebViewProvider } from 'shared/models/web-view-provider.model';
 import type { ProjectMetadata } from 'shared/models/project-metadata.model';
-import {
+import type IDataProviderEngine from 'shared/models/data-provider-engine.model';
+import type { WithNotifyUpdate } from 'shared/models/data-provider-engine.model';
+import type {
+  WordListDataMethods,
+  WordListDataTypes,
   WordListEntry,
 } from 'paranext-extension-word-list';
 import wordListReact from './word-list.web-view?inline';
 import wordListReactStyles from './word-list.web-view.scss?inline';
 
 const { logger } = papi;
+
+const wordListDataProviderEngine: IDataProviderEngine<WordListDataTypes> &
+  WithNotifyUpdate<WordListDataTypes> &
+  WordListDataMethods & {
+    wordList: WordListEntry[];
+  } = {
+  wordList: [
+    {
+      word: 'hoi',
+      scriptureSnippets: ['hallo hoi hee'],
+      scrRefs: [{ bookNum: 1, chapterNum: 1, verseNum: 1 }],
+    },
+  ],
+
+  async getWordList(): Promise<WordListEntry[]> {
+    console.log('getting word list');
+    return this.wordList;
+  },
+
+  async setWordList() {
+    console.log('setting word list');
+    return false;
+  },
+
+  async generateWordList(_projectId, _scope, _scrRef): Promise<boolean> {
+    console.log('Generating word list');
+    return true;
+  },
+
+  notifyUpdate(updateInstructions) {
+    logger.info(`Word list data provider engine ran notifyUpdate! ${updateInstructions}`);
+  },
+};
 
 const WORD_LIST_WEB_VIEW_TYPE = 'paratextWordList.react';
 
@@ -58,6 +95,11 @@ const wordListWebViewProvider: IWebViewProvider = {
 export async function activate(context: ExecutionActivationContext) {
   logger.info('Word List extension is activating!');
 
+  const WordListDataProviderPromise = papi.dataProvider.registerEngine<WordListDataTypes>(
+    'wordList',
+    wordListDataProviderEngine,
+  );
+
   const wordListWebViewProviderPromise = papi.webViewProviders.register(
     WORD_LIST_WEB_VIEW_TYPE,
     wordListWebViewProvider,
@@ -92,7 +134,10 @@ export async function activate(context: ExecutionActivationContext) {
     }),
   );
 
-  context.registrations.add(await wordListWebViewProviderPromise);
+  context.registrations.add(
+    await wordListWebViewProviderPromise,
+    await WordListDataProviderPromise,
+  );
 
   logger.info('Word List extension is finished activating!');
 }

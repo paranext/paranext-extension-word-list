@@ -4,13 +4,17 @@ import { ScrVers, VerseRef } from '@sillsdev/scripture';
 import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
 import { ProjectDataTypes } from 'papi-shared-types';
 import type { WebViewProps } from 'shared/data/web-view.model';
-import type { WordListEntry } from 'paranext-extension-word-list';
+import type {
+  WordListEntry,
+  WordListDataProvider,
+  WordListDataTypes,
+} from 'paranext-extension-word-list';
 import WordContentViewer from './word-content-viewer';
 import WordTable from './word-table';
 
 const {
   react: {
-    hooks: { useSetting, useProjectData },
+    hooks: { useSetting, useDataProvider, useData, useProjectData },
   },
 } = papi;
 
@@ -153,11 +157,20 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
 
+  const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
+
+  const [wordListDP, , loadingWordListDP] = useData.WordList<WordListDataTypes, 'WordList'>(
+    wordListDataProvider,
+    undefined,
+    [],
+  );
+
   useEffect(() => {
     if (isBookTextLoading || !bookText) return;
     setWordFilter('');
     setSelectedWord(undefined);
     setWordList(processBook(bookText, scrRef, scope));
+    wordListDataProvider?.generateWordList(bookText, scrRef, scope);
   }, [isBookTextLoading, bookText, projectId, scope, scrRef]);
 
   useEffect(() => {
@@ -182,6 +195,8 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
 
   return (
     <div className="word-list">
+      {wordListDP && wordListDP.length > 0 && wordListDP[0].word}
+      {loadingWordListDP && <p>loading</p>}
       <RefSelector
         scrRef={scrRef}
         handleSubmit={(newScrRef) => {
