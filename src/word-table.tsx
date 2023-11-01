@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Table, TableCellClickArgs, TableSortColumn } from 'papi-components';
-import { WordListEntry } from './word-list-types';
+import type { WordListEntry } from 'paranext-extension-word-list';
 
 type Row = {
   word: string;
@@ -58,10 +58,11 @@ export default function WordTable({ wordList, fullWordCount, onWordClick }: Word
     onWordClick(args.row.word);
   };
 
-  const wordColumnTitle = useMemo(
-    () => `Words (${wordList.length} of ${fullWordCount})`,
-    [fullWordCount, wordList.length],
-  );
+  const wordColumnTitle = useMemo(() => {
+    return wordList.length === fullWordCount
+      ? `Words (${fullWordCount})`
+      : `Words (${wordList.length} of ${fullWordCount})`;
+  }, [fullWordCount, wordList.length]);
 
   return (
     <Table<Row>
@@ -82,7 +83,7 @@ export default function WordTable({ wordList, fullWordCount, onWordClick }: Word
       onRowsChange={(changedRows: Row[]) => setRows(changedRows)}
       sortColumns={sortColumns}
       onSortColumnsChange={onSortColumnsChange}
-      rowHeight={60}
+      rowHeight={30}
       headerRowHeight={50}
       onCellClick={onCellClick}
     />

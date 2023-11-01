@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Canon } from '@sillsdev/scripture';
 import { Table } from 'papi-components';
-import { WordListEntry } from './word-list-types';
+import type { WordListEntry } from 'paranext-extension-word-list';
 
 type Row = {
   reference: string;
@@ -47,7 +47,7 @@ export default function WordContentViewer({ selectedWord }: { selectedWord: Word
         },
       ]}
       rows={rows}
-      rowHeight={60}
+      rowHeight={30}
       headerRowHeight={50}
     />
   );
