@@ -58,10 +58,11 @@ export default function WordTable({ wordList, fullWordCount, onWordClick }: Word
     onWordClick(args.row.word);
   };
 
-  const wordColumnTitle = useMemo(
-    () => `Words (${wordList.length} of ${fullWordCount})`,
-    [fullWordCount, wordList.length],
-  );
+  const wordColumnTitle = useMemo(() => {
+    return wordList.length === fullWordCount
+      ? `Words (${fullWordCount})`
+      : `Words (${wordList.length} of ${fullWordCount})`;
+  }, [fullWordCount, wordList.length]);
 
   return (
     <Table<Row>
