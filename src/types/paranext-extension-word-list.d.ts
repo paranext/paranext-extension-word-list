@@ -15,19 +15,17 @@ declare module 'paranext-extension-word-list' {
     Verse = 'Verse',
   }
 
+  type WordListSelector = {
+    projectId: string;
+    scrRef: ScriptureReference;
+    scope: Scope;
+  };
+
   export type WordListDataTypes = {
-    WordList: DataProviderDataType<
-      undefined,
-      WordListEntry[] | undefined,
-      WordListEntry[] | undefined
-    >;
+    WordList: DataProviderDataType<WordListSelector, WordListEntry[] | undefined, never>;
   };
 
-  export type WordListDataMethods = {
-    generateWordList(bookText: string, scrRef: ScriptureReference, scope: string): Promise<boolean>;
-  };
-
-  export type WordListDataProvider = IDataProvider<WordListDataTypes> & WordListDataMethods;
+  export type WordListDataProvider = IDataProvider<WordListDataTypes>;
 }
 
 declare module 'papi-shared-types' {

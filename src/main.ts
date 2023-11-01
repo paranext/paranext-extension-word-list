@@ -10,45 +10,192 @@ import type { ProjectMetadata } from 'shared/models/project-metadata.model';
 import type IDataProviderEngine from 'shared/models/data-provider-engine.model';
 import type { WithNotifyUpdate } from 'shared/models/data-provider-engine.model';
 import type {
-  WordListDataMethods,
   WordListDataTypes,
   WordListEntry,
+  WordListSelector,
 } from 'paranext-extension-word-list';
+import { ScriptureReference } from 'papi-components';
+import { VerseRef } from '@sillsdev/scripture';
+import { UnsubscriberAsync } from 'shared/utils/papi-util';
 import wordListReact from './word-list.web-view?inline';
 import wordListReactStyles from './word-list.web-view.scss?inline';
 
 const { logger } = papi;
 
-const wordListDataProviderEngine: IDataProviderEngine<WordListDataTypes> &
-  WithNotifyUpdate<WordListDataTypes> &
-  WordListDataMethods & {
-    wordList: WordListEntry[];
-  } = {
-  wordList: [
-    {
-      word: 'hoi',
-      scriptureSnippets: ['hallo hoi hee'],
-      scrRefs: [{ bookNum: 1, chapterNum: 1, verseNum: 1 }],
-    },
-  ],
+// MOVE TO TYPES FILE
+enum Scope {
+  Book = 'Book',
+  Chapter = 'Chapter',
+  Verse = 'Verse',
+}
 
-  async getWordList(): Promise<WordListEntry[]> {
-    console.log('getting word list');
+function compareRefs(a: ScriptureReference, b: ScriptureReference): boolean {
+  return a.bookNum === b.bookNum && a.chapterNum === b.chapterNum && a.verseNum === b.verseNum;
+}
+
+function getDesiredOccurrence(verseText: string, word: string, occurrence: number): number {
+  const regex = new RegExp(`\\b${word.toLowerCase()}\\b`, 'ig');
+
+  let match = regex.exec(verseText.toLowerCase());
+  let occurrenceIndex = 1;
+
+  while (match !== null) {
+    if (occurrenceIndex === occurrence) {
+      return match.index;
+    }
+    occurrenceIndex += 1;
+    match = regex.exec(verseText.toLowerCase());
+  }
+  return -1;
+}
+
+function getScriptureSnippet(verseText: string, word: string, occurrence: number = 1): string {
+  if (!verseText) throw new Error(`No verse text available.`);
+
+  const index = getDesiredOccurrence(verseText, word, occurrence);
+
+  let snippet = '';
+  const surroundingCharacters = 40;
+
+  if (index !== -1) {
+    let startIndex = Math.max(0, index - surroundingCharacters);
+    let endIndex = Math.min(verseText.length, index + word.length + surroundingCharacters);
+
+    while (startIndex > 0 && !/\s/.test(verseText[startIndex - 1])) {
+      startIndex -= 1;
+    }
+
+    while (endIndex < verseText.length - 1 && !/\s/.test(verseText[endIndex])) {
+      endIndex += 1;
+    }
+
+    snippet = verseText.substring(startIndex, endIndex);
+
+    const wordStartIndex = index - startIndex;
+    const wordEndIndex = wordStartIndex + word.length;
+    const beforeWord = snippet.slice(0, wordStartIndex);
+    const afterWord = snippet.slice(wordEndIndex);
+    const upperCaseWord = snippet.slice(wordStartIndex, wordEndIndex).toUpperCase();
+
+    snippet = beforeWord + upperCaseWord + afterWord;
+  }
+  return snippet;
+}
+
+let prevProcessBookArgs: { bookText: string; scrRef: ScriptureReference; scope: Scope } = {
+  bookText: '',
+  scrRef: { bookNum: -1, chapterNum: -1, verseNum: -1 },
+  scope: Scope.Book,
+};
+
+let prevWordList: WordListEntry[] = [];
+
+function processBook(bookText: string, scrRef: ScriptureReference, scope: Scope) {
+  if (
+    bookText === prevProcessBookArgs.bookText &&
+    scrRef.bookNum === prevProcessBookArgs.scrRef.bookNum &&
+    scrRef.chapterNum === prevProcessBookArgs.scrRef.chapterNum &&
+    scrRef.verseNum === prevProcessBookArgs.scrRef.verseNum &&
+    scope === prevProcessBookArgs.scope
+  )
+    return prevWordList;
+
+  const { bookNum } = scrRef;
+
+  const chapterTexts: string[] = bookText.split(/\\c\s\d+\s/);
+  // Delete the first array element, which contains non-scripture-related content
+  chapterTexts.shift();
+
+  const wordList: WordListEntry[] = [];
+  chapterTexts.forEach((chapterText, chapterId) => {
+    const chapterNum = chapterId + 1;
+    if (scope !== Scope.Book && scrRef.chapterNum !== chapterNum) {
+      return;
+    }
+
+    const verseTexts: string[] = chapterText.split(/\\v\s\d+\s/);
+    // Delete the first array element, which contains non-scripture-related content
+    verseTexts.shift();
+
+    verseTexts.forEach((verseText, verseId) => {
+      const verseNum = verseId + 1;
+      if (scope === Scope.Verse && scrRef.verseNum !== verseNum) {
+        return;
+      }
+
+      const wordMatches: RegExpMatchArray | null | undefined =
+        verseText?.match(/(?<!\\)\b[a-zA-Z’]+\b/g);
+
+      if (wordMatches) {
+        wordMatches.forEach((word) => {
+          const newRef: ScriptureReference = {
+            bookNum,
+            chapterNum,
+            verseNum,
+          };
+          const existingEntry = wordList.find((entry) => entry.word === word.toLocaleLowerCase());
+          if (existingEntry) {
+            existingEntry.scrRefs.push(newRef);
+            const occurrence = existingEntry.scrRefs.reduce(
+              (matches, ref) => (compareRefs(ref, newRef) ? matches + 1 : matches),
+              0,
+            );
+            existingEntry.scriptureSnippets.push(getScriptureSnippet(verseText, word, occurrence));
+          } else {
+            const newEntry: WordListEntry = {
+              word: word.toLocaleLowerCase(),
+              scrRefs: [newRef],
+              scriptureSnippets: [getScriptureSnippet(verseText, word)],
+            };
+            wordList.push(newEntry);
+          }
+        });
+      }
+    });
+  });
+  prevProcessBookArgs = { bookText, scrRef, scope };
+  prevWordList = wordList;
+  return wordList;
+}
+
+const wordListDataProviderEngine: IDataProviderEngine<WordListDataTypes> &
+  WithNotifyUpdate<WordListDataTypes> & {
+    wordList: WordListEntry[];
+    projectDataUnsubscriber?: UnsubscriberAsync;
+  } = {
+  wordList: [],
+
+  async getWordList({
+    projectId,
+    scope,
+    scrRef,
+  }: WordListSelector): Promise<WordListEntry[] | undefined> {
+    const projectDataProvider =
+      await papi.projectDataProvider.getProjectDataProvider<'ParatextStandard'>(projectId);
+    if (this.projectDataUnsubscriber) await this.projectDataUnsubscriber();
+    const verseRef = new VerseRef(scrRef.bookNum, scrRef.chapterNum, scrRef.verseNum);
+    const bookText = await projectDataProvider.getBookUSFM(verseRef);
+    this.projectDataUnsubscriber = await projectDataProvider.subscribeBookUSFM(
+      verseRef,
+      () => {
+        this.notifyUpdate('WordList');
+      },
+      { retrieveDataImmediately: false },
+    );
+    if (!bookText) return undefined;
+    this.wordList = processBook(bookText, scrRef, scope);
     return this.wordList;
   },
 
   async setWordList() {
-    console.log('setting word list');
-    return false;
+    throw new Error('Word list is generated and cannot be set');
   },
 
-  async generateWordList(_projectId, _scope, _scrRef): Promise<boolean> {
-    console.log('Generating word list');
+  notifyUpdate() {},
+
+  async dispose(): Promise<boolean> {
+    if (this.projectDataUnsubscriber) await this.projectDataUnsubscriber();
     return true;
-  },
-
-  notifyUpdate(updateInstructions) {
-    logger.info(`Word list data provider engine ran notifyUpdate! ${updateInstructions}`);
   },
 };
 

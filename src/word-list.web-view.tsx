@@ -1,8 +1,6 @@
 import papi from 'papi-frontend';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { ScrVers, VerseRef } from '@sillsdev/scripture';
 import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
-import { ProjectDataTypes } from 'papi-shared-types';
 import type { WebViewProps } from 'shared/data/web-view.model';
 import type {
   WordListEntry,
@@ -14,7 +12,7 @@ import WordTable from './word-table';
 
 const {
   react: {
-    hooks: { useSetting, useDataProvider, useData, useProjectData },
+    hooks: { useSetting, useDataProvider, useData },
   },
 } = papi;
 
@@ -30,150 +28,36 @@ enum Scope {
   Verse = 'Verse',
 }
 
-function compareRefs(a: ScriptureReference, b: ScriptureReference): boolean {
-  return a.bookNum === b.bookNum && a.chapterNum === b.chapterNum && a.verseNum === b.verseNum;
-}
-
-function getDesiredOccurrence(verseText: string, word: string, occurrence: number): number {
-  const regex = new RegExp(`\\b${word.toLowerCase()}\\b`, 'ig');
-
-  let match = regex.exec(verseText.toLowerCase());
-  let occurrenceIndex = 1;
-
-  while (match !== null) {
-    if (occurrenceIndex === occurrence) {
-      return match.index;
-    }
-    occurrenceIndex += 1;
-    match = regex.exec(verseText.toLowerCase());
-  }
-  return -1;
-}
-
-function getScriptureSnippet(verseText: string, word: string, occurrence: number = 1): string {
-  if (!verseText) throw new Error(`No verse text available.`);
-
-  const index = getDesiredOccurrence(verseText, word, occurrence);
-
-  let snippet = '';
-  const surroundingCharacters = 40;
-
-  if (index !== -1) {
-    let startIndex = Math.max(0, index - surroundingCharacters);
-    let endIndex = Math.min(verseText.length, index + word.length + surroundingCharacters);
-
-    while (startIndex > 0 && !/\s/.test(verseText[startIndex - 1])) {
-      startIndex -= 1;
-    }
-
-    while (endIndex < verseText.length - 1 && !/\s/.test(verseText[endIndex])) {
-      endIndex += 1;
-    }
-
-    snippet = verseText.substring(startIndex, endIndex);
-
-    const wordStartIndex = index - startIndex;
-    const wordEndIndex = wordStartIndex + word.length;
-    const beforeWord = snippet.slice(0, wordStartIndex);
-    const afterWord = snippet.slice(wordEndIndex);
-    const upperCaseWord = snippet.slice(wordStartIndex, wordEndIndex).toUpperCase();
-
-    snippet = beforeWord + upperCaseWord + afterWord;
-  }
-  return snippet;
-}
-
-function processBook(bookText: string, scrRef: ScriptureReference, scope: string) {
-  const { bookNum } = scrRef;
-
-  const chapterTexts: string[] = bookText.split(/\\c\s\d+\s/);
-  // Delete the first array element, which contains non-scripture-related content
-  chapterTexts.shift();
-
-  const wordList: WordListEntry[] = [];
-  chapterTexts.forEach((chapterText, chapterId) => {
-    const chapterNum = chapterId + 1;
-    if (scope !== Scope.Book && scrRef.chapterNum !== chapterNum) {
-      return;
-    }
-
-    const verseTexts: string[] = chapterText.split(/\\v\s\d+\s/);
-    // Delete the first array element, which contains non-scripture-related content
-    verseTexts.shift();
-
-    verseTexts.forEach((verseText, verseId) => {
-      const verseNum = verseId + 1;
-      if (scope === Scope.Verse && scrRef.verseNum !== verseNum) {
-        return;
-      }
-
-      const wordMatches: RegExpMatchArray | null | undefined =
-        verseText?.match(/(?<!\\)\b[a-zA-Z’]+\b/g);
-
-      if (wordMatches) {
-        wordMatches.forEach((word) => {
-          const newRef: ScriptureReference = {
-            bookNum,
-            chapterNum,
-            verseNum,
-          };
-          const existingEntry = wordList.find((entry) => entry.word === word.toLocaleLowerCase());
-          if (existingEntry) {
-            existingEntry.scrRefs.push(newRef);
-            const occurrence = existingEntry.scrRefs.reduce(
-              (matches, ref) => (compareRefs(ref, newRef) ? matches + 1 : matches),
-              0,
-            );
-            existingEntry.scriptureSnippets.push(getScriptureSnippet(verseText, word, occurrence));
-          } else {
-            const newEntry: WordListEntry = {
-              word: word.toLocaleLowerCase(),
-              scrRefs: [newRef],
-              scriptureSnippets: [getScriptureSnippet(verseText, word)],
-            };
-            wordList.push(newEntry);
-          }
-        });
-      }
-    });
-  });
-  return wordList;
-}
-
 globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebViewProps) {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
-  const [scope, setScope] = useWebViewState<string>('scope', 'Book');
+  const [scope, setScope] = useWebViewState<Scope>('scope', Scope.Book);
   const [wordFilter, setWordFilter] = useState<string>('');
   const [projectId] = useWebViewState<string>('projectId', '');
-  const [bookText, , isBookTextLoading] = useProjectData.BookUSFM<
-    ProjectDataTypes['ParatextStandard'],
-    'BookUSFM'
-  >(
-    projectId ?? undefined,
-    useMemo(() => new VerseRef(scrRef.bookNum, 1, 1, ScrVers.English), [scrRef.bookNum]),
-    'Loading chapter',
-  );
-  const [wordList, setWordList] = useState<WordListEntry[]>([]);
   const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
 
   const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
 
-  const [wordListDP, , loadingWordListDP] = useData.WordList<WordListDataTypes, 'WordList'>(
+  const [wordList, , loadingWordList] = useData.WordList<WordListDataTypes, 'WordList'>(
     wordListDataProvider,
-    undefined,
+    useMemo(
+      () => ({
+        projectId,
+        scope,
+        scrRef,
+      }),
+      [projectId, scope, scrRef],
+    ),
     [],
   );
 
   useEffect(() => {
-    if (isBookTextLoading || !bookText) return;
     setWordFilter('');
     setSelectedWord(undefined);
-    setWordList(processBook(bookText, scrRef, scope));
-    wordListDataProvider?.generateWordList(bookText, scrRef, scope);
-  }, [isBookTextLoading, bookText, projectId, scope, scrRef]);
+  }, [projectId, scope, scrRef]);
 
   useEffect(() => {
+    if (!wordList) return;
     setSelectedWord(undefined);
     if (wordFilter === '') {
       setShownWordList(wordList);
@@ -182,7 +66,7 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
     setShownWordList(
       wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase())),
     );
-  }, [wordList, wordFilter]);
+  }, [wordList, loadingWordList, wordFilter]);
 
   function findSelectedWordEntry(word: string) {
     const clickedEntry = shownWordList.find((entry) => entry.word === word);
@@ -195,8 +79,6 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
 
   return (
     <div className="word-list">
-      {wordListDP && wordListDP.length > 0 && wordListDP[0].word}
-      {loadingWordListDP && <p>loading</p>}
       <RefSelector
         scrRef={scrRef}
         handleSubmit={(newScrRef) => {
@@ -219,12 +101,17 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
           isFullWidth
         />
       </div>
-      {shownWordList.length > 0 && (
-        <WordTable
-          wordList={shownWordList}
-          fullWordCount={wordList.length}
-          onWordClick={(word: string) => findSelectedWordEntry(word)}
-        />
+      {loadingWordList ? (
+        <p>Generating word list</p>
+      ) : (
+        wordList &&
+        shownWordList.length > 0 && (
+          <WordTable
+            wordList={shownWordList}
+            fullWordCount={wordList.length}
+            onWordClick={(word: string) => findSelectedWordEntry(word)}
+          />
+        )
       )}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
     </div>
