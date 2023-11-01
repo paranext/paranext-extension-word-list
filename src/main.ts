@@ -252,8 +252,6 @@ export async function activate(context: ExecutionActivationContext) {
     wordListWebViewProvider,
   );
 
-  papi.webViews.getWebView(WORD_LIST_WEB_VIEW_TYPE, undefined, { existingId: '?' });
-
   context.registrations.add(
     await papi.commands.registerCommand('paratextWordList.open', async (projectId) => {
       let projectIdForWebView = projectId;
