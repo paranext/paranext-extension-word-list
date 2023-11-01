@@ -22,7 +22,7 @@ import wordListReactStyles from './word-list.web-view.scss?inline';
 
 const { logger } = papi;
 
-// MOVE TO TYPES FILE
+// TODO Import from types file
 enum Scope {
   Book = 'Book',
   Chapter = 'Chapter',

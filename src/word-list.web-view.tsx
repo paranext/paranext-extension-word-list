@@ -22,6 +22,7 @@ const defaultScrRef: ScriptureReference = {
   verseNum: 1,
 };
 
+// TODO Import from types file
 enum Scope {
   Book = 'Book',
   Chapter = 'Chapter',
