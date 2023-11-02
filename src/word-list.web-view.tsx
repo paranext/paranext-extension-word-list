@@ -1,6 +1,6 @@
 import papi from 'papi-frontend';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
+import { ComboBox, RefSelector, ScriptureReference, Switch, TextField } from 'papi-components';
 import type { WebViewProps } from 'shared/data/web-view.model';
 import type {
   WordListEntry,
@@ -36,6 +36,7 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [projectId] = useWebViewState<string>('projectId', '');
   const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
+  const [showWordCloud, setShowWordCloud] = useWebViewState<boolean>('wordcloud', false);
 
   const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
 
@@ -101,19 +102,26 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
           onChange={(event) => onChangeWordFilter(event)}
           isFullWidth
         />
+        <Switch
+          isChecked={showWordCloud}
+          onChange={() => {
+            setShowWordCloud(!showWordCloud);
+          }}
+        />
+        <p>{showWordCloud ? 'Cloud' : 'Table'} view</p>
       </div>
-      {loadingWordList ? (
-        <p>Generating word list</p>
-      ) : (
+      {loadingWordList && <p>Generating word list</p>}
+      {!loadingWordList &&
         wordList &&
-        shownWordList.length > 0 && (
+        (showWordCloud ? (
+          <p>Cloud goes here</p>
+        ) : (
           <WordTable
             wordList={shownWordList}
             fullWordCount={wordList.length}
             onWordClick={(word: string) => findSelectedWordEntry(word)}
           />
-        )
-      )}
+        ))}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
     </div>
   );
