@@ -7,8 +7,9 @@ import type {
   WordListDataProvider,
   WordListDataTypes,
 } from 'paranext-extension-word-list';
-import WordContentViewer from './word-content-viewer';
-import WordTable from './word-table';
+import WordContentViewer from './word-content-viewer.component';
+import WordTable from './word-table.component';
+import WordCloud from './word-cloud.component';
 
 const {
   react: {
@@ -114,7 +115,7 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
       {!loadingWordList &&
         wordList &&
         (showWordCloud ? (
-          <p>Cloud goes here</p>
+          <WordCloud wordList={shownWordList} />
         ) : (
           <WordTable
             wordList={shownWordList}

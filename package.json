@@ -72,5 +72,11 @@
     "webpack-cli": "^5.1.4",
     "webpack-merge": "^5.9.0",
     "zip-build": "^1.8.0"
+  },
+  "dependencies": {
+    "@visx/responsive": "^3.3.0",
+    "@visx/scale": "^3.3.0",
+    "@visx/text": "^3.3.0",
+    "@visx/wordcloud": "^3.3.0"
   }
 }
