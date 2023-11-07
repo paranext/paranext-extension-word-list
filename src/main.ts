@@ -92,6 +92,12 @@ let prevWordList: WordListEntry[] = [];
 
 function processBook(bookText: string, scrRef: ScriptureReference, scope: Scope) {
   if (
+    prevWordList.length > 0 &&
+    ((scrRef.chapterNum !== prevProcessBookArgs.scrRef.chapterNum && scope === Scope.Book) ||
+      (scrRef.verseNum !== prevProcessBookArgs.scrRef.verseNum && scope !== Scope.Verse))
+  )
+    return prevWordList;
+  if (
     bookText === prevProcessBookArgs.bookText &&
     scrRef.bookNum === prevProcessBookArgs.scrRef.bookNum &&
     scrRef.chapterNum === prevProcessBookArgs.scrRef.chapterNum &&

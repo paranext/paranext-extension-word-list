@@ -35,41 +35,40 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [scope, setScope] = useWebViewState<Scope>('scope', Scope.Book);
   const [wordFilter, setWordFilter] = useState<string>('');
   const [projectId] = useWebViewState<string>('projectId', '');
-  const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
   const [showWordCloud, setShowWordCloud] = useWebViewState<boolean>('wordcloud', false);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
 
-  const [wordList, , loadingWordList] = useData.WordList<WordListDataTypes, 'WordList'>(
+  const [wordList] = useData.WordList<WordListDataTypes, 'WordList'>(
     wordListDataProvider,
-    useMemo(
-      () => ({
+    useMemo(() => {
+      setLoading(true);
+      return {
         projectId,
         scope,
         scrRef,
-      }),
-      [projectId, scope, scrRef],
-    ),
+      };
+    }, [projectId, scope, scrRef]),
     [],
   );
 
   useEffect(() => {
-    setWordFilter('');
-    setSelectedWord(undefined);
-  }, [projectId, scope, scrRef]);
-
-  useEffect(() => {
-    if (!wordList) return;
-    setSelectedWord(undefined);
-    if (wordFilter === '') {
-      setShownWordList(wordList);
-      return;
+    if (wordList && wordList.length > 0) {
+      setLoading(false);
+      setSelectedWord(undefined);
     }
-    setShownWordList(
-      wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase())),
-    );
-  }, [wordList, loadingWordList, wordFilter]);
+  }, [wordList]);
+
+  const shownWordList: WordListEntry[] = useMemo((): WordListEntry[] => {
+    setSelectedWord(undefined);
+    if (!wordList) return [];
+    if (wordFilter === '') {
+      return wordList;
+    }
+    return wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase()));
+  }, [wordList, wordFilter]);
 
   function findSelectedWordEntry(word: string) {
     const clickedEntry = shownWordList.find((entry) => entry.word === word);
@@ -107,12 +106,13 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
           isChecked={showWordCloud}
           onChange={() => {
             setShowWordCloud(!showWordCloud);
+            setSelectedWord(undefined);
           }}
         />
         <p>{showWordCloud ? 'Cloud' : 'Table'} view</p>
       </div>
-      {loadingWordList && <p>Generating word list</p>}
-      {!loadingWordList &&
+      {loading && <p>Generating word list</p>}
+      {!loading &&
         wordList &&
         (showWordCloud ? (
           <WordCloud wordList={shownWordList} />

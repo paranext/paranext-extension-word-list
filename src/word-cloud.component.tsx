@@ -14,7 +14,7 @@ export interface CloudData {
   value: number;
 }
 
-const colors = ['#143059', '#2F6B9A', '#82a6c2'];
+const colors = ['#d1160f', '#a8120d', '#7a0f0b', '#440705', '#3d0604', '#000000'];
 
 export default function WordCloud({ wordList }: WordCloudProps) {
   const cloudData = useMemo(() => {
@@ -45,9 +45,6 @@ export default function WordCloud({ wordList }: WordCloudProps) {
           font="Impact"
           padding={2}
           spiral="archimedean"
-          random={() => {
-            return 0.5;
-          }}
           words={cloudData}
         >
           {(cloudWords) =>
