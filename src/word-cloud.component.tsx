@@ -19,7 +19,14 @@ const colors = ['#d1160f', '#a8120d', '#7a0f0b', '#440705', '#3d0604', '#000000'
 export default function WordCloud({ wordList }: WordCloudProps) {
   const cloudData = useMemo(() => {
     const cloudDataArray: CloudData[] = [];
-    wordList.forEach((word) => {
+    const sortedWordList = wordList
+      .sort((a, b) => {
+        if (a.scrRefs.length < b.scrRefs.length) return 1;
+        if (a.scrRefs.length > b.scrRefs.length) return -1;
+        return 0;
+      })
+      .slice(0, 100);
+    sortedWordList.forEach((word) => {
       cloudDataArray.push({ text: word.word, value: word.scrRefs.length });
     });
     return cloudDataArray;

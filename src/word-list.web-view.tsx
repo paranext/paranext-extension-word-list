@@ -30,6 +30,41 @@ enum Scope {
   Verse = 'Verse',
 }
 
+type DataSelectorType = {
+  projectId: string;
+  scope: Scope;
+  scrRef: ScriptureReference;
+};
+
+const defaultDataSelector: DataSelectorType = {
+  projectId: '',
+  scope: Scope.Book,
+  scrRef: defaultScrRef,
+};
+
+function newDataNeeded(
+  dataSelector: DataSelectorType,
+  projectId: string,
+  scope: Scope,
+  scrRef: ScriptureReference,
+): boolean {
+  if (dataSelector.projectId !== projectId) return true;
+  if (dataSelector.scope !== scope) return true;
+  if (
+    (scope === Scope.Book && scrRef.bookNum !== dataSelector.scrRef.bookNum) ||
+    (scope === Scope.Chapter &&
+      (scrRef.bookNum !== dataSelector.scrRef.bookNum ||
+        scrRef.chapterNum !== dataSelector.scrRef.chapterNum)) ||
+    (scope === Scope.Verse &&
+      (scrRef.bookNum !== dataSelector.scrRef.bookNum ||
+        scrRef.chapterNum !== dataSelector.scrRef.chapterNum ||
+        scrRef.verseNum !== dataSelector.scrRef.verseNum))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebViewProps) {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
   const [scope, setScope] = useWebViewState<Scope>('scope', Scope.Book);
@@ -38,21 +73,32 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
   const [showWordCloud, setShowWordCloud] = useWebViewState<boolean>('wordcloud', false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [dataSelector, setDataSelector] = useState<DataSelectorType>(defaultDataSelector);
 
   const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
 
   const [wordList] = useData.WordList<WordListDataTypes, 'WordList'>(
     wordListDataProvider,
     useMemo(() => {
-      setLoading(true);
       return {
+        projectId: dataSelector.projectId,
+        scope: dataSelector.scope,
+        scrRef: dataSelector.scrRef,
+      };
+    }, [dataSelector]),
+    [],
+  );
+
+  useEffect(() => {
+    if (newDataNeeded(dataSelector, projectId, scope, scrRef)) {
+      setLoading(true);
+      setDataSelector({
         projectId,
         scope,
         scrRef,
-      };
-    }, [projectId, scope, scrRef]),
-    [],
-  );
+      });
+    }
+  }, [dataSelector, projectId, scope, scrRef]);
 
   useEffect(() => {
     if (wordList && wordList.length > 0) {
