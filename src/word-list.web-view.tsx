@@ -92,6 +92,7 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   useEffect(() => {
     if (newDataNeeded(dataSelector, projectId, scope, scrRef)) {
       setLoading(true);
+      setSelectedWord(undefined);
       setDataSelector({
         projectId,
         scope,
@@ -103,7 +104,6 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   useEffect(() => {
     if (wordList && wordList.length > 0) {
       setLoading(false);
-      setSelectedWord(undefined);
     }
   }, [wordList]);
 
