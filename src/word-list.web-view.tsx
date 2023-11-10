@@ -1,14 +1,15 @@
 import papi from 'papi-frontend';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
-import { ComboBox, RefSelector, ScriptureReference, TextField } from 'papi-components';
+import { ComboBox, RefSelector, ScriptureReference, Switch, TextField } from 'papi-components';
 import type { WebViewProps } from 'shared/data/web-view.model';
 import type {
   WordListEntry,
   WordListDataProvider,
   WordListDataTypes,
 } from 'paranext-extension-word-list';
-import WordContentViewer from './word-content-viewer';
-import WordTable from './word-table';
+import WordContentViewer from './word-content-viewer.component';
+import WordTable from './word-table.component';
+import WordCloud from './word-cloud.component';
 
 const {
   react: {
@@ -29,45 +30,91 @@ enum Scope {
   Verse = 'Verse',
 }
 
+type DataSelectorType = {
+  projectId: string;
+  scope: Scope;
+  scrRef: ScriptureReference;
+};
+
+const defaultDataSelector: DataSelectorType = {
+  projectId: '',
+  scope: Scope.Book,
+  scrRef: defaultScrRef,
+};
+
+function newDataNeeded(
+  dataSelector: DataSelectorType,
+  projectId: string,
+  scope: Scope,
+  scrRef: ScriptureReference,
+): boolean {
+  if (dataSelector.projectId !== projectId) return true;
+  if (dataSelector.scope !== scope) return true;
+  if (
+    (scope === Scope.Book && scrRef.bookNum !== dataSelector.scrRef.bookNum) ||
+    (scope === Scope.Chapter &&
+      (scrRef.bookNum !== dataSelector.scrRef.bookNum ||
+        scrRef.chapterNum !== dataSelector.scrRef.chapterNum)) ||
+    (scope === Scope.Verse &&
+      (scrRef.bookNum !== dataSelector.scrRef.bookNum ||
+        scrRef.chapterNum !== dataSelector.scrRef.chapterNum ||
+        scrRef.verseNum !== dataSelector.scrRef.verseNum))
+  ) {
+    return true;
+  }
+  return false;
+}
+
 globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebViewProps) {
   const [scrRef, setScrRef] = useSetting('platform.verseRef', defaultScrRef);
   const [scope, setScope] = useWebViewState<Scope>('scope', Scope.Book);
   const [wordFilter, setWordFilter] = useState<string>('');
   const [projectId] = useWebViewState<string>('projectId', '');
-  const [shownWordList, setShownWordList] = useState<WordListEntry[]>([]);
   const [selectedWord, setSelectedWord] = useState<WordListEntry>();
+  const [showWordCloud, setShowWordCloud] = useWebViewState<boolean>('wordcloud', false);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [dataSelector, setDataSelector] = useState<DataSelectorType>(defaultDataSelector);
 
   const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
 
-  const [wordList, , loadingWordList] = useData.WordList<WordListDataTypes, 'WordList'>(
+  const [wordList] = useData.WordList<WordListDataTypes, 'WordList'>(
     wordListDataProvider,
-    useMemo(
-      () => ({
-        projectId,
-        scope,
-        scrRef,
-      }),
-      [projectId, scope, scrRef],
-    ),
+    useMemo(() => {
+      return {
+        projectId: dataSelector.projectId,
+        scope: dataSelector.scope,
+        scrRef: dataSelector.scrRef,
+      };
+    }, [dataSelector]),
     [],
   );
 
   useEffect(() => {
-    setWordFilter('');
-    setSelectedWord(undefined);
-  }, [projectId, scope, scrRef]);
+    if (newDataNeeded(dataSelector, projectId, scope, scrRef)) {
+      setLoading(true);
+      setSelectedWord(undefined);
+      setDataSelector({
+        projectId,
+        scope,
+        scrRef,
+      });
+    }
+  }, [dataSelector, projectId, scope, scrRef]);
 
   useEffect(() => {
-    if (!wordList) return;
-    setSelectedWord(undefined);
-    if (wordFilter === '') {
-      setShownWordList(wordList);
-      return;
+    if (wordList && wordList.length > 0) {
+      setLoading(false);
     }
-    setShownWordList(
-      wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase())),
-    );
-  }, [wordList, loadingWordList, wordFilter]);
+  }, [wordList]);
+
+  const shownWordList: WordListEntry[] = useMemo((): WordListEntry[] => {
+    setSelectedWord(undefined);
+    if (!wordList) return [];
+    if (wordFilter === '') {
+      return wordList;
+    }
+    return wordList.filter((entry) => entry.word.toLowerCase().includes(wordFilter.toLowerCase()));
+  }, [wordList, wordFilter]);
 
   function findSelectedWordEntry(word: string) {
     const clickedEntry = shownWordList.find((entry) => entry.word === word);
@@ -101,19 +148,27 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
           onChange={(event) => onChangeWordFilter(event)}
           isFullWidth
         />
+        <Switch
+          isChecked={showWordCloud}
+          onChange={() => {
+            setShowWordCloud(!showWordCloud);
+            setSelectedWord(undefined);
+          }}
+        />
+        <p>{showWordCloud ? 'Cloud' : 'Table'} view</p>
       </div>
-      {loadingWordList ? (
-        <p>Generating word list</p>
-      ) : (
+      {loading && <p>Generating word list</p>}
+      {!loading &&
         wordList &&
-        shownWordList.length > 0 && (
+        (showWordCloud ? (
+          <WordCloud wordList={shownWordList} />
+        ) : (
           <WordTable
             wordList={shownWordList}
             fullWordCount={wordList.length}
             onWordClick={(word: string) => findSelectedWordEntry(word)}
           />
-        )
-      )}
+        ))}
       {selectedWord && <WordContentViewer selectedWord={selectedWord} />}
     </div>
   );

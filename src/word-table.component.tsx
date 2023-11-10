@@ -16,18 +16,17 @@ type WordTableProps = {
 };
 
 export default function WordTable({ wordList, fullWordCount, onWordClick }: WordTableProps) {
-  const [rows, setRows] = useState<Row[]>([]);
   const [sortColumns, setSortColumns] = useState<TableSortColumn[]>(defaultSortColumns);
   const onSortColumnsChange = useCallback((changedSortColumns: TableSortColumn[]) => {
     setSortColumns(changedSortColumns.slice(-1));
   }, []);
 
-  useEffect(() => {
+  const rows = useMemo(() => {
     const newRows: Row[] = [];
     wordList.forEach((word) => {
       newRows.push({ word: word.word, count: word.scrRefs.length });
     });
-    setRows(newRows);
+    return newRows;
   }, [wordList]);
 
   const sortedRows = useMemo((): readonly Row[] => {
@@ -80,7 +79,6 @@ export default function WordTable({ wordList, fullWordCount, onWordClick }: Word
       rowKeyGetter={(row: Row) => {
         return row.word;
       }}
-      onRowsChange={(changedRows: Row[]) => setRows(changedRows)}
       sortColumns={sortColumns}
       onSortColumnsChange={onSortColumnsChange}
       rowHeight={30}
