@@ -170,8 +170,10 @@ const wordListDataProviderEngine: IDataProviderEngine<WordListDataTypes> &
     scope,
     scrRef,
   }: WordListSelector): Promise<WordListEntry[] | undefined> {
-    const projectDataProvider =
-      await papi.projectDataProvider.getProjectDataProvider<'ParatextStandard'>(projectId);
+    const projectDataProvider = await papi.projectDataProvider.getProjectDataProvider(
+      'ParatextStandard',
+      projectId,
+    );
     if (this.projectDataUnsubscriber) await this.projectDataUnsubscriber();
     const verseRef = new VerseRef(scrRef.bookNum, scrRef.chapterNum, scrRef.verseNum);
     const bookText = await projectDataProvider.getBookUSFM(verseRef);
@@ -242,7 +244,7 @@ const wordListWebViewProvider: IWebViewProvider = {
 export async function activate(context: ExecutionActivationContext) {
   logger.info('Word List extension is activating!');
 
-  const WordListDataProviderPromise = papi.dataProvider.registerEngine<WordListDataTypes>(
+  const WordListDataProviderPromise = papi.dataProvider.registerEngine(
     'wordList',
     wordListDataProviderEngine,
   );

@@ -1,8 +1,8 @@
-import { ScriptureReference } from 'papi-components';
-import type IDataProvider from 'shared/models/data-provider.interface';
-import type { DataProviderDataType } from 'shared/models/data-provider.model';
-
 declare module 'paranext-extension-word-list' {
+  import { ScriptureReference } from 'papi-components';
+  import type IDataProvider from 'shared/models/data-provider.interface';
+  import type { DataProviderDataType } from 'shared/models/data-provider.model';
+
   export type WordListEntry = {
     word: string;
     scrRefs: ScriptureReference[];
@@ -29,6 +29,8 @@ declare module 'paranext-extension-word-list' {
 }
 
 declare module 'papi-shared-types' {
+  import type { WordListDataProvider } from 'paranext-extension-word-list';
+
   export interface CommandHandlers {
     /**
      * Opens a new word list WebView and returns the WebView id
@@ -37,5 +39,9 @@ declare module 'papi-shared-types' {
      * @returns WebView id for new word list WebView or `null` if the user canceled the dialog
      */
     'paratextWordList.open': (projectId?: string) => Promise<string | null | undefined>;
+  }
+
+  export interface DataProviders {
+    wordList: WordListDataProvider;
   }
 }

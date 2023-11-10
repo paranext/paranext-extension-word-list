@@ -1,21 +1,11 @@
-import papi from 'papi-frontend';
+import { useSetting, useData } from 'papi-frontend/react';
 import { ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { ComboBox, RefSelector, ScriptureReference, Switch, TextField } from 'papi-components';
 import type { WebViewProps } from 'shared/data/web-view.model';
-import type {
-  WordListEntry,
-  WordListDataProvider,
-  WordListDataTypes,
-} from 'paranext-extension-word-list';
+import type { WordListEntry } from 'paranext-extension-word-list';
 import WordContentViewer from './word-content-viewer.component';
 import WordTable from './word-table.component';
 import WordCloud from './word-cloud.component';
-
-const {
-  react: {
-    hooks: { useSetting, useDataProvider, useData },
-  },
-} = papi;
 
 const defaultScrRef: ScriptureReference = {
   bookNum: 1,
@@ -75,10 +65,7 @@ globalThis.webViewComponent = function WordListWebView({ useWebViewState }: WebV
   const [loading, setLoading] = useState<boolean>(false);
   const [dataSelector, setDataSelector] = useState<DataSelectorType>(defaultDataSelector);
 
-  const wordListDataProvider = useDataProvider<WordListDataProvider>('wordList');
-
-  const [wordList] = useData.WordList<WordListDataTypes, 'WordList'>(
-    wordListDataProvider,
+  const [wordList] = useData('wordList').WordList(
     useMemo(() => {
       return {
         projectId: dataSelector.projectId,
