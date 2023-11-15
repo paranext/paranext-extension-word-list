@@ -4,7 +4,7 @@ import type {
   GetWebViewOptions,
   SavedWebViewDefinition,
   WebViewDefinition,
-} from 'shared/data/web-view.model';
+} from 'shared/models/web-view.model';
 import type { IWebViewProvider } from 'shared/models/web-view-provider.model';
 import type { ProjectMetadata } from 'shared/models/project-metadata.model';
 import type IDataProviderEngine from 'shared/models/data-provider-engine.model';
