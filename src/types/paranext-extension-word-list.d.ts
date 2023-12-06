@@ -36,9 +36,9 @@ declare module 'papi-shared-types' {
      * Opens a new word list WebView and returns the WebView id
      * @param projectId Project ID to open with the word list. Prompts the user to
      * select project if not provided
-     * @returns WebView id for new word list WebView or `null` if the user canceled the dialog
+     * @returns WebView id for new word list WebView or `undefined` if the user canceled the dialog
      */
-    'paratextWordList.open': (projectId?: string) => Promise<string | null | undefined>;
+    'paratextWordList.open': (projectId?: string) => Promise<string | undefined>;
   }
 
   export interface DataProviders {

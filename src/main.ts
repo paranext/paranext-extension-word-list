@@ -39,6 +39,8 @@ function getDesiredOccurrence(verseText: string, word: string, occurrence: numbe
   let match = regex.exec(verseText.toLowerCase());
   let occurrenceIndex = 1;
 
+  // Regex matches are null when there is no match
+  // eslint-disable-next-line no-null/no-null
   while (match !== null) {
     if (occurrenceIndex === occurrence) {
       return match.index;
@@ -264,8 +266,8 @@ export async function activate(context: ExecutionActivationContext) {
         if (userProjectIds) projectIdForWebView = userProjectIds;
       }
 
-      // If the user didn't select a project, return null and don't show the word list
-      if (!projectIdForWebView) return null;
+      // If the user didn't select a project, return undefined and don't show the word list
+      if (!projectIdForWebView) return undefined;
 
       return papi.webViews.getWebView(
         WORD_LIST_WEB_VIEW_TYPE,
