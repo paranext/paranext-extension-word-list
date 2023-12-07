@@ -1,7 +1,6 @@
 declare module 'paranext-extension-word-list' {
   import { ScriptureReference } from 'papi-components';
-  import type IDataProvider from 'shared/models/data-provider.interface';
-  import type { DataProviderDataType } from 'shared/models/data-provider.model';
+  import { DataProviderDataType, IDataProvider } from '@papi/core';
 
   export type WordListEntry = {
     word: string;

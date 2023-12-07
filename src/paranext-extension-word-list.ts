@@ -1,14 +1,16 @@
-import papi from 'papi-backend';
-import type { ExecutionActivationContext } from 'extension-host/extension-types/extension-activation-context.model';
-import type {
+import papi from '@papi/backend';
+import {
+  ExecutionActivationContext,
   GetWebViewOptions,
+  IDataProviderEngine,
+  IWebViewProvider,
+  ProjectMetadata,
   SavedWebViewDefinition,
+  UnsubscriberAsync,
   WebViewDefinition,
-} from 'shared/models/web-view.model';
-import type { IWebViewProvider } from 'shared/models/web-view-provider.model';
-import type { ProjectMetadata } from 'shared/models/project-metadata.model';
-import type IDataProviderEngine from 'shared/models/data-provider-engine.model';
-import type { WithNotifyUpdate } from 'shared/models/data-provider-engine.model';
+  WithNotifyUpdate,
+} from '@papi/core';
+
 import type {
   WordListDataTypes,
   WordListEntry,
@@ -16,7 +18,6 @@ import type {
 } from 'paranext-extension-word-list';
 import { ScriptureReference } from 'papi-components';
 import { VerseRef } from '@sillsdev/scripture';
-import { UnsubscriberAsync } from 'shared/utils/papi-util';
 import wordListReact from './word-list.web-view?inline';
 import wordListReactStyles from './word-list.web-view.scss?inline';
 
