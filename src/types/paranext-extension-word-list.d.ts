@@ -1,5 +1,5 @@
 declare module 'paranext-extension-word-list' {
-  import { ScriptureReference } from 'papi-components';
+  import { ScriptureReference } from 'platform-bible-react';
   import { DataProviderDataType, IDataProvider } from '@papi/core';
 
   export type WordListEntry = {

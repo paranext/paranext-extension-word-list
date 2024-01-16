@@ -6,7 +6,6 @@ import {
   IWebViewProvider,
   ProjectMetadata,
   SavedWebViewDefinition,
-  UnsubscriberAsync,
   WebViewDefinition,
   WithNotifyUpdate,
 } from '@papi/core';
@@ -16,7 +15,8 @@ import type {
   WordListEntry,
   WordListSelector,
 } from 'paranext-extension-word-list';
-import { ScriptureReference } from 'papi-components';
+import { ScriptureReference } from 'platform-bible-react';
+import { UnsubscriberAsync } from 'platform-bible-utils';
 import { VerseRef } from '@sillsdev/scripture';
 import wordListReact from './word-list.web-view?inline';
 import wordListReactStyles from './word-list.web-view.scss?inline';
