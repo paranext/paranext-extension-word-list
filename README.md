@@ -1,6 +1,10 @@
 # paranext-extension-word-list
 
-Basic extension template for Paranext
+No description
+
+## This extension has moved
+
+This extension has moved to [`paratext-bible-extensions`](https://github.com/paranext/paratext-bible-extensions). This repository will no longer be updated. Please refer to the [`paratext-bible-word-list` extension](https://github.com/paranext/paratext-bible-extensions/tree/main/src/paratext-bible-word-list) in the future.
 
 ## Summary
 
