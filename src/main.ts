@@ -255,7 +255,7 @@ export async function activate(context: ExecutionActivationContext) {
   );
 
   context.registrations.add(
-    await papi.commands.registerCommand('paratextWordList.open', async (projectId) => {
+    await papi.commands.registerCommand('paratextBibleWordList.open', async (projectId) => {
       let projectIdForWebView = projectId;
 
       // If projectIds weren't passed in, get from dialog
