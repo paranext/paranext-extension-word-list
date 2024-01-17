@@ -1,5 +1,5 @@
 declare module 'paranext-extension-word-list' {
-  import { ScriptureReference } from 'papi-components';
+  import { ScriptureReference } from 'platform-bible-react';
   import { DataProviderDataType, IDataProvider } from '@papi/core';
 
   export type WordListEntry = {
@@ -37,7 +37,7 @@ declare module 'papi-shared-types' {
      * select project if not provided
      * @returns WebView id for new word list WebView or `undefined` if the user canceled the dialog
      */
-    'paratextWordList.open': (projectId?: string) => Promise<string | undefined>;
+    'paratextBibleWordList.open': (projectId?: string) => Promise<string | undefined>;
   }
 
   export interface DataProviders {
